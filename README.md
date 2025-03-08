@@ -117,12 +117,11 @@ WHERE trade_number = 123;
 ```
 
 ```
-BEGIN;
+BEGIN TRANSACTION;
 
 -- Step 1: Delete existing records with matching trade_number
-DELETE FROM deposit.new_td_rollover tgt
-USING deposit.stg_td_rollover src
-WHERE tgt.trade_number = src.trade_number;
+DELETE FROM deposit.new_td_rollover 
+WHERE trade_number IN (SELECT trade_number FROM deposit.stg_td_rollover);
 
 -- Step 2: Insert updated data from the staging table
 INSERT INTO deposit.new_td_rollover (
@@ -134,16 +133,29 @@ INSERT INTO deposit.new_td_rollover (
 )
 SELECT 
     trade_number, investment_type,
-    CAST(start_date AS DATE), CAST(maturity_date AS DATE), CAST(tenor AS INTEGER), currency,
-    CAST(interest_rate AS DECIMAL(20,2)), CAST(maturity_status AS VARCHAR), 
-    CAST(reference_number AS INTEGER), old_reference_number,
-    CAST(REPLACE(time_deposit_amount, ',', '') AS DECIMAL(20,2)), time_deposit_account_number, 
-    settlement_account_number, frequency,
-    CAST(interest_accrued_till_date AS DECIMAL(20,2)), 
-    CAST(REPLACE(interest_at_maturity, '''', '') AS DECIMAL(20,2)), 
-    branch, trade_type, funding_source, 
-    obs_code, sun_id, client_name, account_official_name,
-    CAST(done_time AS TIMESTAMP), CAST(update_time AS TIMESTAMP)
+    CAST(start_date AS DATE), 
+    CAST(maturity_date AS DATE), 
+    CAST(tenor AS INTEGER), 
+    currency,
+    CAST(NULLIF(interest_rate, '') AS DECIMAL(20,2)), 
+    maturity_status, 
+    CAST(NULLIF(reference_number, '') AS INTEGER), 
+    old_reference_number,
+    CAST(NULLIF(REPLACE(time_deposit_amount, ',', ''), '') AS DECIMAL(20,2)), 
+    time_deposit_account_number, 
+    settlement_account_number, 
+    frequency,
+    CAST(NULLIF(interest_accrued_till_date, '') AS DECIMAL(20,2)), 
+    CAST(NULLIF(REPLACE(interest_at_maturity, '''', ''), '') AS DECIMAL(20,2)), 
+    branch, 
+    trade_type, 
+    funding_source, 
+    obs_code, 
+    sun_id, 
+    client_name, 
+    account_official_name,
+    CAST(NULLIF(done_time, '') AS TIMESTAMP), 
+    CAST(NULLIF(update_time, '') AS TIMESTAMP)
 FROM deposit.stg_td_rollover;
 
 COMMIT;
