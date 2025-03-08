@@ -110,3 +110,8 @@ DO UPDATE SET
 
 
 ```
+```
+UPDATE deposit.new_td_rollover
+SET investment_type = 'New Value'  -- Replace 'New Value' with the desired investment type
+WHERE trade_number = 123;
+```
