@@ -117,11 +117,14 @@ WHERE trade_number = 123;
 ```
 
 ```
--- Step 1: Delete existing records with the same trade_number
-DELETE FROM deposit.new_td_rollover
-WHERE trade_number IN (SELECT trade_number FROM deposit.stg_td_rollover);
+BEGIN;
 
--- Step 2: Insert new data from the staging table
+-- Step 1: Delete existing records with matching trade_number
+DELETE FROM deposit.new_td_rollover tgt
+USING deposit.stg_td_rollover src
+WHERE tgt.trade_number = src.trade_number;
+
+-- Step 2: Insert updated data from the staging table
 INSERT INTO deposit.new_td_rollover (
     trade_number, investment_type, start_date, maturity_date, tenor, currency,
     interest_rate, maturity_status, reference_number, old_reference_number,
@@ -143,4 +146,5 @@ SELECT
     CAST(done_time AS TIMESTAMP), CAST(update_time AS TIMESTAMP)
 FROM deposit.stg_td_rollover;
 
+COMMIT;
 ```
