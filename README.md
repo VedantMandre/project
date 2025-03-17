@@ -1,162 +1,77 @@
-# project
 ```
--- First, update existing records
-UPDATE deposit.new_td_rollover tgt
-SET
-    investment_type = src.investment_type,
-    start_date = CAST(src.start_date AS DATE),
-    maturity_date = CAST(src.maturity_date AS DATE),
-    tenor = CAST(src.tenor AS INTEGER),
-    currency = src.currency,
-    interest_rate = CAST(src.interest_rate AS DECIMAL(20,2)),
-    maturity_status = CAST(src.maturity_status AS VARCHAR),
-    reference_number = CAST(src.reference_number AS INTEGER),
-    old_reference_number = src.old_reference_number,
-    time_deposit_amount = CAST(REPLACE(src.time_deposit_amount, ',', '') AS DECIMAL(20,2)),
-    time_deposit_account_number = src.time_deposit_account_number,
-    settlement_account_number = src.settlement_account_number,
-    frequency = src.frequency,
-    interest_accrued_till_date = CAST(src.interest_accrued_till_date AS DECIMAL(20,2)),
-    interest_at_maturity = CAST(REPLACE(src.interest_at_maturity, '''', '') AS DECIMAL(20,2)),
-    branch = src.branch,
-    trade_type = src.trade_type,
-    funding_source = src.funding_source,
-    obs_code = src.obs_code,
-    sun_id = src.sun_id,
-    client_name = src.client_name,
-    account_official_name = src.account_official_name,
-    done_time = CAST(src.done_time AS TIMESTAMP),
-    update_time = CAST(src.update_time AS TIMESTAMP)
-FROM deposit.stg_td_rollover src
-WHERE tgt.trade_number = src.trade_number;
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
 
--- Next, insert new records
-INSERT INTO deposit.new_td_rollover (
-    trade_number, investment_type, start_date, maturity_date, tenor, currency,
-    interest_rate, maturity_status, reference_number, old_reference_number,
-    time_deposit_amount, time_deposit_account_number, settlement_account_number, frequency,
-    interest_accrued_till_date, interest_at_maturity, branch, trade_type, funding_source,
-    obs_code, sun_id, client_name, account_official_name, done_time, update_time
-)
-SELECT 
-    src.trade_number, src.investment_type,
-    CAST(src.start_date AS DATE), CAST(src.maturity_date AS DATE), CAST(src.tenor AS INTEGER), src.currency,
-    CAST(src.interest_rate AS DECIMAL(20,2)), CAST(src.maturity_status AS VARCHAR), 
-    CAST(src.reference_number AS INTEGER), src.old_reference_number,
-    CAST(REPLACE(src.time_deposit_amount, ',', '') AS DECIMAL(20,2)), src.time_deposit_account_number, 
-    src.settlement_account_number, src.frequency,
-    CAST(src.interest_accrued_till_date AS DECIMAL(20,2)), 
-    CAST(REPLACE(src.interest_at_maturity, '''', '') AS DECIMAL(20,2)), 
-    src.branch, src.trade_type, src.funding_source, 
-    src.obs_code, src.sun_id, src.client_name, src.account_official_name,
-    CAST(src.done_time AS TIMESTAMP), CAST(src.update_time AS TIMESTAMP)
-FROM deposit.stg_td_rollover src
-WHERE NOT EXISTS (
-    SELECT 1 FROM deposit.new_td_rollover tgt
-    WHERE tgt.trade_number = src.trade_number
+    <changeSet id="create-beneficiary-table" author="developer">
+        <sql>
+CREATE TABLE IF NOT EXISTS payments.beneficiary (
+    beneficiary_id BIGINT NOT NULL PRIMARY KEY,
+    sun_id VARCHAR UNIQUE NOT NULL,
+    payment_id VARCHAR,
+    branch_id VARCHAR,
+    name VARCHAR NOT NULL,
+    account_number VARCHAR NOT NULL,
+    organization VARCHAR,
+    department VARCHAR,
+    street_name VARCHAR,
+    building_number VARCHAR,
+    building_name VARCHAR,
+    floor VARCHAR,
+    po_box VARCHAR,
+    room VARCHAR,
+    postal_code VARCHAR,
+    city VARCHAR NOT NULL,
+    town_location VARCHAR,
+    district VARCHAR,
+    state_province VARCHAR,
+    country VARCHAR NOT NULL,
+    approval_status VARCHAR DEFAULT 'Pending',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_by VARCHAR,
+    updated_at TIMESTAMP DEFAULT now(),
+    record_status VARCHAR NOT NULL CHECK (record_status IN ('Draft', 'Complete')),
+    CONSTRAINT pk_payments_beneficiary PRIMARY KEY (beneficiary_id)
 );
+        </sql>
+    </changeSet>
 
-```
-
-
-```
-INSERT INTO deposit.new_td_rollover AS tgt (
-    trade_number, investment_type, start_date, maturity_date, tenor, currency,
-    interest_rate, maturity_status, reference_number, old_reference_number,
-    time_deposit_amount, time_deposit_account_number, settlement_account_number, frequency,
-    interest_accrued_till_date, interest_at_maturity, branch, trade_type, funding_source,
-    obs_code, sun_id, client_name, account_official_name, done_time, update_time
-)
-SELECT 
-    src.trade_number, src.investment_type,
-    CAST(src.start_date AS DATE), CAST(src.maturity_date AS DATE), CAST(src.tenor AS INTEGER), src.currency,
-    CAST(src.interest_rate AS DECIMAL(20,2)), CAST(src.maturity_status AS VARCHAR), 
-    CAST(src.reference_number AS INTEGER), src.old_reference_number,
-    CAST(REPLACE(src.time_deposit_amount, ',', '') AS DECIMAL(20,2)), src.time_deposit_account_number, 
-    src.settlement_account_number, src.frequency,
-    CAST(src.interest_accrued_till_date AS DECIMAL(20,2)), 
-    CAST(REPLACE(src.interest_at_maturity, '''', '') AS DECIMAL(20,2)), 
-    src.branch, src.trade_type, src.funding_source, 
-    src.obs_code, src.sun_id, src.client_name, src.account_official_name,
-    CAST(src.done_time AS TIMESTAMP), CAST(src.update_time AS TIMESTAMP)
-FROM deposit.stg_td_rollover src
-ON CONFLICT (trade_number) 
-DO UPDATE SET
-    investment_type = EXCLUDED.investment_type,
-    start_date = EXCLUDED.start_date,
-    maturity_date = EXCLUDED.maturity_date,
-    tenor = EXCLUDED.tenor,
-    currency = EXCLUDED.currency,
-    interest_rate = EXCLUDED.interest_rate,
-    maturity_status = EXCLUDED.maturity_status,
-    reference_number = EXCLUDED.reference_number,
-    old_reference_number = EXCLUDED.old_reference_number,
-    time_deposit_amount = EXCLUDED.time_deposit_amount,
-    time_deposit_account_number = EXCLUDED.time_deposit_account_number,
-    settlement_account_number = EXCLUDED.settlement_account_number,
-    frequency = EXCLUDED.frequency,
-    interest_accrued_till_date = EXCLUDED.interest_accrued_till_date,
-    interest_at_maturity = EXCLUDED.interest_at_maturity,
-    branch = EXCLUDED.branch,
-    trade_type = EXCLUDED.trade_type,
-    funding_source = EXCLUDED.funding_source,
-    obs_code = EXCLUDED.obs_code,
-    sun_id = EXCLUDED.sun_id,
-    client_name = EXCLUDED.client_name,
-    account_official_name = EXCLUDED.account_official_name,
-    done_time = EXCLUDED.done_time,
-    update_time = EXCLUDED.update_time;
-
-
-
-```
-```
-UPDATE deposit.new_td_rollover
-SET investment_type = 'New Value'  -- Replace 'New Value' with the desired investment type
-WHERE trade_number = 123;
-```
-
-```
-BEGIN TRANSACTION;
-
--- Step 1: Delete existing records with matching trade_number
-DELETE FROM deposit.new_td_rollover 
-WHERE trade_number IN (SELECT trade_number FROM deposit.stg_td_rollover);
-
--- Step 2: Insert updated data from the staging table
-INSERT INTO deposit.new_td_rollover (
-    trade_number, investment_type, start_date, maturity_date, tenor, currency,
-    interest_rate, maturity_status, reference_number, old_reference_number,
-    time_deposit_amount, time_deposit_account_number, settlement_account_number, frequency,
-    interest_accrued_till_date, interest_at_maturity, branch, trade_type, funding_source,
-    obs_code, sun_id, client_name, account_official_name, done_time, update_time
-)
-SELECT 
-    trade_number, investment_type,
-    CAST(start_date AS DATE), 
-    CAST(maturity_date AS DATE), 
-    CAST(tenor AS INTEGER), 
-    currency,
-    CAST(NULLIF(interest_rate, '') AS DECIMAL(20,2)), 
-    maturity_status, 
-    CAST(NULLIF(reference_number, '') AS INTEGER), 
-    old_reference_number,
-    CAST(NULLIF(REPLACE(time_deposit_amount, ',', ''), '') AS DECIMAL(20,2)), 
-    time_deposit_account_number, 
-    settlement_account_number, 
-    frequency,
-    CAST(NULLIF(interest_accrued_till_date, '') AS DECIMAL(20,2)), 
-    CAST(NULLIF(REPLACE(interest_at_maturity, '''', ''), '') AS DECIMAL(20,2)), 
-    branch, 
-    trade_type, 
-    funding_source, 
-    obs_code, 
-    sun_id, 
-    client_name, 
-    account_official_name,
-    CAST(NULLIF(done_time, '') AS TIMESTAMP), 
-    CAST(NULLIF(update_time, '') AS TIMESTAMP)
-FROM deposit.stg_td_rollover;
-
-COMMIT;
+    <changeSet id="create-beneficiary-bank-table" author="developer">
+        <sql>
+CREATE TABLE IF NOT EXISTS payments.beneficiary_bank (
+    bank_id VARCHAR NOT NULL,
+    beneficiary_id BIGINT NOT NULL,
+    identifier VARCHAR NOT NULL,
+    bank_name VARCHAR NOT NULL,
+    bank_department VARCHAR,
+    bank_sub_department VARCHAR,
+    bank_street_name VARCHAR,
+    bank_building_number VARCHAR,
+    bank_building_name VARCHAR,
+    bank_floor VARCHAR,
+    bank_po_box VARCHAR,
+    bank_room VARCHAR,
+    bank_postal_code VARCHAR,
+    bank_city VARCHAR NOT NULL,
+    bank_town_location VARCHAR,
+    bank_district_name VARCHAR,
+    bank_state_province VARCHAR,
+    bank_country VARCHAR NOT NULL,
+    approval_status VARCHAR DEFAULT 'Pending',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_by VARCHAR,
+    updated_at TIMESTAMP DEFAULT now(),
+    record_status VARCHAR NOT NULL CHECK (record_status IN ('Draft', 'Complete')),
+    CONSTRAINT pk_payments_beneficiary_bank PRIMARY KEY (bank_id),
+    CONSTRAINT fk_payments_beneficiary_bank_beneficiary_id FOREIGN KEY (beneficiary_id) REFERENCES payments.beneficiary(beneficiary_id)
+);
+        </sql>
+    </changeSet>
+</databaseChangeLog>
 ```
