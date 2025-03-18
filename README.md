@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS payments.beneficiary (
     updated_by VARCHAR,
     updated_at TIMESTAMP DEFAULT now(),
     record_status VARCHAR NOT NULL CHECK (record_status IN ('Draft', 'Complete')),
-    CONSTRAINT pk_payments_beneficiary PRIMARY KEY (beneficiary_id)
+    CONSTRAINT pk_payment_beneficiaries PRIMARY KEY (beneficiary_id) 
 );
         </sql>
     </changeSet>
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS payments.beneficiary (
     updated_by VARCHAR,
     updated_at TIMESTAMP DEFAULT now(),
     record_status VARCHAR NOT NULL CHECK (record_status IN ('Draft', 'Complete')),
-    CONSTRAINT pk_payments_beneficiary PRIMARY KEY (beneficiary_id)
+    CONSTRAINT pk_payment_beneficiaries PRIMARY KEY (beneficiary_id) 
 );
     </sql>
 </changeSet>
@@ -140,10 +140,10 @@ CREATE TABLE IF NOT EXISTS payments.beneficiary_bank (
     updated_by VARCHAR,
     updated_at TIMESTAMP DEFAULT now(),
     record_status VARCHAR NOT NULL CHECK (record_status IN ('Draft', 'Complete')),
-    CONSTRAINT pk_payments_beneficiary_bank PRIMARY KEY (bank_id),
-    CONSTRAINT fk_payments_beneficiary_bank_beneficiary_id 
-        FOREIGN KEY (beneficiary_id) REFERENCES payments.beneficiary(beneficiary_id)
-);
+    CONSTRAINT pk_payment_beneficiary_bank PRIMARY KEY (bank_id), 
+    CONSTRAINT fk_payment_beneficiary_bank_beneficiary_id 
+         FOREIGN KEY (beneficiary_id) 
+         REFERENCES payment.beneficiaries(beneficiary_id)
     </sql>
 </changeSet>
 ```
