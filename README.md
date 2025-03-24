@@ -237,3 +237,19 @@ BEGIN
 END;
 $$;
 ```
+
+```
+SELECT 
+    otd.old_reference_number,
+    tdr.reference_number,
+    CASE 
+        WHEN tdr.reference_number IS NULL THEN 'No match in rollover table'
+        ELSE 'Match found in rollover table'
+    END AS match_status,
+    COUNT(*) OVER () AS total_rows
+FROM deposit.test_recon_obs_time_deposit_data otd
+LEFT JOIN deposit.test_recon_time_deposit_rollover tdr
+    ON otd.old_reference_number = tdr.reference_number
+WHERE otd.old_reference_number IS NOT NULL
+ORDER BY otd.old_reference_number;
+```
