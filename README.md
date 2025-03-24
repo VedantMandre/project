@@ -166,8 +166,7 @@ BEGIN
                      rec.old_reference_number, rec.reference_number;
     END LOOP;
 
-    -- Step 2: Only process records where old_reference_number is not NULL 
-    -- (these are the rolled-over time deposits)
+    -- Step 2: Process records - Insert new rollovers and update existing matches
     RAISE NOTICE 'Processing rolled-over time deposits...';
     
     WITH rolled_over_data AS (
@@ -190,6 +189,7 @@ BEGIN
         WHERE otd.old_reference_number IS NOT NULL
     )
     
+    -- Insert new rollovers (where old_reference_number doesn't exist in target)
     INSERT INTO deposit.test_recon_time_deposit_rollover (
         trade_number, reference_number, principal_amount, 
         maturity_date, currency_code, accrued_interest, 
@@ -198,43 +198,40 @@ BEGIN
         maturity_status, status
     )
     SELECT 
-        trade_number, reference_number, principal_amount, 
-        maturity_date, currency_code, accrued_interest, 
-        interest_amount, branch_code, funding_source, 
-        obs_number, account_number, settlement_account, 
-        maturity_status, status
-    FROM rolled_over_data
-    ON CONFLICT (reference_number) DO UPDATE SET
-        trade_number = EXCLUDED.trade_number,
-        principal_amount = EXCLUDED.principal_amount,
-        maturity_date = EXCLUDED.maturity_date,
-        currency_code = EXCLUDED.currency_code,
-        accrued_interest = EXCLUDED.accrued_interest,
-        interest_amount = EXCLUDED.interest_amount,
-        branch_code = EXCLUDED.branch_code,
-        funding_source = EXCLUDED.funding_source,
-        obs_number = EXCLUDED.obs_number,
-        account_number = EXCLUDED.account_number,
-        settlement_account = EXCLUDED.settlement_account,
-        maturity_status = EXCLUDED.maturity_status,
-        status = CASE 
-                    WHEN deposit.test_recon_time_deposit_rollover.status <> 'Finalized' 
-                    THEN 'Finalized' 
-                    ELSE deposit.test_recon_time_deposit_rollover.status 
-                 END;
+        rod.trade_number, rod.reference_number, rod.principal_amount, 
+        rod.maturity_date, rod.currency_code, rod.accrued_interest, 
+        rod.interest_amount, rod.branch_code, rod.funding_source, 
+        rod.obs_number, rod.account_number, rod.settlement_account, 
+        rod.maturity_status, rod.status
+    FROM rolled_over_data rod
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM deposit.test_recon_time_deposit_rollover tdr
+        WHERE tdr.reference_number = rod.reference_number
+    )
+    ON CONFLICT (reference_number) DO NOTHING;  -- Shouldn't happen due to WHERE NOT EXISTS
 
-    -- Step 3: Update status to 'Finalized' for all records that exist in both tables
-    RAISE NOTICE 'Updating status for reconciled records...';
+    -- Step 3: Update existing records where old_reference_number matches reference_number
+    RAISE NOTICE 'Updating existing matched records...';
 
     UPDATE deposit.test_recon_time_deposit_rollover tdr
-    SET status = 'Finalized'
-    WHERE EXISTS (
-        SELECT 1 
-        FROM deposit.test_recon_obs_time_deposit_data otd
-        WHERE otd.old_reference_number = tdr.reference_number
-        AND otd.old_reference_number IS NOT NULL
-    ) AND tdr.status <> 'Finalized';
-    
+    SET 
+        trade_number = rod.trade_number,
+        principal_amount = rod.principal_amount,
+        maturity_date = rod.maturity_date,
+        currency_code = rod.currency_code,
+        accrued_interest = rod.accrued_interest,
+        interest_amount = rod.interest_amount,
+        branch_code = rod.branch_code,
+        funding_source = rod.funding_source,
+        obs_number = rod.obs_number,
+        account_number = rod.account_number,
+        settlement_account = rod.settlement_account,
+        maturity_status = rod.maturity_status,
+        status = 'Finalized'
+    FROM rolled_over_data rod
+    WHERE tdr.reference_number = rod.reference_number;
+
     -- Confirmation Message
     RAISE NOTICE 'Sync completed successfully!';
 END;
