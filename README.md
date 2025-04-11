@@ -239,17 +239,31 @@ $$;
 ```
 
 ```
-SELECT 
-    otd.old_reference_number,
-    tdr.reference_number,
-    CASE 
-        WHEN tdr.reference_number IS NULL THEN 'No match in rollover table'
-        ELSE 'Match found in rollover table'
-    END AS match_status,
-    COUNT(*) OVER () AS total_rows
-FROM deposit.test_recon_obs_time_deposit_data otd
-LEFT JOIN deposit.test_recon_time_deposit_rollover tdr
-    ON otd.old_reference_number = tdr.reference_number
-WHERE otd.old_reference_number IS NOT NULL
-ORDER BY otd.old_reference_number;
+import logging
+import azure.functions as func
+from azure.eventhub import EventHubProducerClient, EventData
+import os
+import json
+
+event_hub_conn_str = os.environ["EVENT_HUB_CONNECTION_STRING"]
+event_hub_name = os.environ["EVENT_HUB_NAME"]
+
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        data = req.get_json()
+        producer = EventHubProducerClient.from_connection_string(
+            conn_str=event_hub_conn_str,
+            eventhub_name=event_hub_name
+        )
+
+        event_data_batch = producer.create_batch()
+        for record in data:
+            event_data_batch.add(EventData(json.dumps(record)))
+
+        producer.send_batch(event_data_batch)
+        producer.close()
+        return func.HttpResponse("Events sent!", status_code=200)
+    except Exception as e:
+        logging.error(f"Error: {str(e)}")
+        return func.HttpResponse(f"Error: {str(e)}", status_code=500)
 ```
