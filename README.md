@@ -1,4 +1,71 @@
 ```
+CREATE TABLE financial_institutions_staging (
+    swift_bic VARCHAR NOT NULL,
+    fed_aba VARCHAR NOT NULL,
+
+    -- CABA fields
+    caba_name VARCHAR,
+    caba_address_line1 VARCHAR,
+    caba_address_line2 VARCHAR,
+    caba_address_line3 VARCHAR,
+
+    -- FED fields
+    fed_name VARCHAR,
+    fed_address_line1 VARCHAR,
+    fed_address_line2 VARCHAR,
+    fed_address_line3 VARCHAR,
+
+    -- UID fields
+    uid_name VARCHAR,
+    uid_address_line1 VARCHAR,
+    uid_address_line2 VARCHAR,
+    uid_address_line3 VARCHAR,
+
+    -- SWIFT fields
+    swift_name VARCHAR,
+    swift_address_line1 VARCHAR,
+    swift_address_line2 VARCHAR,
+    swift_address_line3 VARCHAR,
+    swift_structured_address VARCHAR,
+
+    is_active BOOLEAN DEFAULT true,
+
+    created_by VARCHAR NOT NULL,
+    created_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'UTC'),
+    updated_by VARCHAR NOT NULL,
+    updated_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'UTC'),
+
+    md5_hash TEXT GENERATED ALWAYS AS (
+        md5(
+            COALESCE(swift_bic, '') ||
+            COALESCE(fed_aba, '') ||
+            COALESCE(caba_name, '') ||
+            COALESCE(caba_address_line1, '') ||
+            COALESCE(caba_address_line2, '') ||
+            COALESCE(caba_address_line3, '') ||
+            COALESCE(fed_name, '') ||
+            COALESCE(fed_address_line1, '') ||
+            COALESCE(fed_address_line2, '') ||
+            COALESCE(fed_address_line3, '') ||
+            COALESCE(uid_name, '') ||
+            COALESCE(uid_address_line1, '') ||
+            COALESCE(uid_address_line2, '') ||
+            COALESCE(uid_address_line3, '') ||
+            COALESCE(swift_name, '') ||
+            COALESCE(swift_address_line1, '') ||
+            COALESCE(swift_address_line2, '') ||
+            COALESCE(swift_address_line3, '') ||
+            COALESCE(swift_structured_address, '')
+        )
+    ) STORED,
+
+    CONSTRAINT unique_md5_hash UNIQUE (md5_hash),
+    PRIMARY KEY (swift_bic, fed_aba)
+);
+
+
+```
+```
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
